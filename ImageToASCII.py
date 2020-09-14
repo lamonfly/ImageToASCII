@@ -5,12 +5,17 @@ import math
 from PIL import Image, ImageDraw
 
 #Gray scale level values from:  
-#http://paulbourke.net/dataformats/asciiart/ 
+#http://paulbourke.net/dataformats/asciiart/
+
+#Code resource https://www.geeksforgeeks.org/converting-image-ascii-image-python/
 
 #70 levels of gray
-gscale1 = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
+gscale1 = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. "
 #10 levels of gray
 gscale2 = "@%#*+=-:. "
+
+#Scale of character
+cscale = 6
 
 def getAverage(image):
     #Get image as numpy array
@@ -22,7 +27,7 @@ def getAverage(image):
     #Get average
     return np.average(im.reshape(w*h))
 
-def convertImageToASCII(fileName, cols, scale, moreLevels):
+def convertImageToASCII(fileName, scale, moreLevels):
     #Declare global
     global gscale1, gscale2
 
@@ -31,23 +36,22 @@ def convertImageToASCII(fileName, cols, scale, moreLevels):
 
     #Store dimension
     W, H = image.size[0], image.size[1]
+    print("input image dims: %d x %d" % (W, H))
 
-    #Compute width of tile
-    w = W/cols
-
-    #Compute tile height base on aspect ratio and scale
-    h = w/scale
+    #compute cols
+    cols = int(W * scale)
 
     #Compute number of rows
-    rows = int(H/h)
+    rows = int(H * scale)
+
+    #Compute width of tile
+    w = W / cols
+
+    #Compute height of tile
+    h = H / rows
 
     print("cols: %d, rows %d" % (cols, rows))
     print("tile dims: %d x %d" % (w, h))
-
-    #Check if image size is too small
-    if cols > W or rows > H:
-        print("Image too small for specified cols!")
-        exit(0)
 
     #ASCII image is a list of character strings
     aimg = []
@@ -99,7 +103,6 @@ def main():
     parser.add_argument('--file', dest='imgFile', required=True)
     parser.add_argument('--scale', dest='scale', required=False)
     parser.add_argument('--out', dest='outFile', required=False)
-    parser.add_argument('--cols', dest='cols', required=False)
     parser.add_argument('--morelevels', dest='moreLevels', action='store_true')
 
     #Parse args
@@ -113,32 +116,26 @@ def main():
         outFile = args.outFile
 
     #Set scale default as 0.43 (fit courier font)
-    scale = 0.43
+    scale = 0.1
     if args.scale:
         scale = float(args.scale)
 
-    #Set cols
-    cols = 80
-    if args.cols:
-        cols = int(args.cols)
-
     print('generating ASCII art...')
     #Convert image to ASCII txt
-    aimg = convertImageToASCII(imgFile, cols, scale, args.moreLevels)
+    aimg = convertImageToASCII(imgFile, scale, args.moreLevels)
     #Draw simple image
-    img = Image.new('RGB', (cols * 6, len(aimg[0]) * 8), color = 'white')
+    img = Image.new('RGB', (len(aimg[0]) * cscale, len(aimg) * cscale), color = 'white')
     img.save(outFile + ".jpg")
     d = ImageDraw.Draw(img)
 
     #Open file
-    f = open(outFile, 'w')
+    f = open(outFile + ".txt", 'w')
 
     #Write to file
     for rowIndex, row in enumerate(aimg):
         f.write(row + '\n')
         for colIndex, col in enumerate(row):
-            d.text((colIndex * 6, rowIndex * 8), col, fill= 'black')
-            img.save(outFile + ".jpg")
+            d.text((colIndex * cscale, rowIndex * cscale), col, fill= 'black')
         
 
     #Cleanup
